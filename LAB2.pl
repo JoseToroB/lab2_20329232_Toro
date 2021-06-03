@@ -42,6 +42,12 @@ fechaGetD([D,M,Y],D).
 fechaGetM([D,M,Y],M).
 fechaGetY([D,M,Y],Y).
 
+esFecha([D.M,Y]):-  D>28,M=2,!,false.
+esFecha([D.M,Y]):-  D>30,(M=2;M=6;M=9;M=11),!,false.
+esFecha([D,M,Y]):-
+    number(D),number(M),number(Y),
+    D>0,(D<31;D=31), M>0 ,( M<12 ; M=12),!,true.
+
 
 /*
 TDA PUBLICACION
@@ -85,8 +91,6 @@ getUserLista([[ID,Username,Password,FechaR,ListaPubli,ListaComent]|RestoUsers],U
 getUserLista([_|[ID,Username,Password,FechaR,ListaPubli,ListaComent]],UserBuscado,Lista):- 
     (Username = UserBuscado, Lista=[ID,Username,Password,FechaR,ListaPubli,ListaComent]).
 
-
-
 /*
 TDA COMENTARIO
 un comentario es una respuesta a la lista
@@ -97,10 +101,41 @@ crearRespuesta(ID,Autor,Fecha,CuerpoTexto,ListComent,IDpubli,Likes,NOMBRERespues
     NOMBRERespuesta=[ID,Autor,Fecha,CuerpoTexto,ListComent,IDpubli,Likes].
 
 %selectores TDA comentario
-getResp([ID,_,_,_,_,_,_],ID).
-getResp([_,Autor,_,_,_,_,_],Autor).
-getResp([_,_,Fecha,_,_,_,_],Fecha).
-getResp([_,_,_,CuerpoTexto,_,_,_],CuerpoTexto).
-getResp([_,_,_,_,ListComent,_,_],ListComent).
-getResp([_,_,_,_,_,IDpubli,_],IDpubli).
-getResp([_,_,_,_,_,_,Likes],Likes).
+getIDResp([ID,_,_,_,_,_,_],ID).
+getAUTORResp([_,Autor,_,_,_,_,_],Autor).
+getFECHAResp([_,_,Fecha,_,_,_,_],Fecha).
+getCUERPOTXTResp([_,_,_,CuerpoTexto,_,_,_],CuerpoTexto).
+getLISTCOMENTResp([_,_,_,_,ListComent,_,_],ListComent).
+getIDPUBLIResp([_,_,_,_,_,IDpubli,_],IDpubli).
+getLIKESResp([_,_,_,_,_,_,Likes],Likes).
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+%%FUNCIONES AUXILIARES%%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+%esta funcion agrega al final un elemento en una lista
+agregarAlFinal([], E, [E]).
+agregarAlFinal([A|Cola], E, [A|NvaCola]) :-
+    agregarAlFinal(Cola, E, NvaCola).
+
+%ESTA FUNCION REVISA SI EXISTE UN USUARIO DENTRO DE UNA LISTA
+existeUser([[Username|_]|RestoUsers],UserBuscado,X):-  
+    (Username = UserBuscado, X=true); existeUser(RestoUsers,UserBuscado,X).
+existeUser([_|[Username|_]],UserBuscado,X):- 
+    (Username = UserBuscado, X=true) ; (Username \= UserBuscado, X=false).
+existeUser([],_,X):- X=false .
+
+%%%%%%%%%%%
+%FUNCIONES%
+%%%%%%%%%%%
+/*
+(0.5 pts) socialNetworkRegister: 
+Predicado que permite consultar el valor que toma un TDA SocialNetwork al ocurrir el registro de un nuevo usuario. 
+Para esto se ingresa un SocialNetwork inicial, nombre del usuario, contraseña y el SocialNetwork resultante luego del registro. 
+El retorno del predicado es true en caso que se pudo satisfacer el registro del usuario.
+*/
+socialNetworkRegister(Sn1, Fecha, Username, Password, Sn2):- 
+    %debo reviar si existe otro usuario con el mismo nombre
+    %en caso de que exista entonces entrego SN2 
+    %en caso de no estar entrego Sn2 con el usuario registrado
+    Sn2=[Fecha,Username,Password].
