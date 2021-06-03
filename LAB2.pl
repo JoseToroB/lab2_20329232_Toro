@@ -18,7 +18,7 @@ getNombreRS([Name,_,_,_,_,_,_,_,_], Name).
 getDateRS([_,Date,_,_,_,_,_,_,_], Date).
 getUserOn([_,_,UserOn,_,_,_,_,_,_], UserOn).
 getCantPubli([_,_,_,CantPubli,_,_,_,_,_], CantPubli).
-getListPubli([_,_,_,_,ListaPubli,_,_,_,_], ListaPreguntas).
+getListPubli([_,_,_,_,ListaPubli,_,_,_,_], ListaPubli).
 getCantUsers([_,_,_,_,_,CantUser,_,_,_], CantUser).
 getListUser([_,_,_,_,_,_,ListaUser,_,_], ListaUser).
 getCantComent([_,_,_,_,_,_,_,CantComent,_], CantComent).
@@ -31,16 +31,16 @@ lista con la forma
 [DD,MM,YYYY] donde todos sus valores son numeros
 */
 %primero revisa sus parametros
-fecha(D,M,Y,_):- D>28,M=2,!,false.
-fecha(D,M,Y,_):- D>30,(M=2;M=6;M=9;M=11),!,false.
+fecha(D,M,_,_):- D>28,M=2,!,false.
+fecha(D,M,_,_):- D>30,(M=2;M=6;M=9;M=11),!,false.
 %si no cumple  los anteriores entrara en esta 
 fecha(D,M,Y,[D,M,Y]):-
     number(D),number(M),number(Y),
     D>0,(D<31;D=31), M>0 ,( M<12 ; M=12),!.
 
-fechaGetD([D,M,Y],D).
-fechaGetM([D,M,Y],M).
-fechaGetY([D,M,Y],Y).
+fechaGetD([D,_,_],D).
+fechaGetM([_,M,_],M).
+fechaGetY([_,_,Y],Y).
 
 esFecha([D.M,Y]):-  D>28,M=2,!,false.
 esFecha([D.M,Y]):-  D>30,(M=2;M=6;M=9;M=11),!,false.
@@ -56,7 +56,7 @@ una publicacion una lista con la siguiente forma
 */
 %CONSTRUCTOR PREGUNTA
 crearPregunta(ID,Autor,Texto,Fecha,Cuerpo,Destinatarios,ListComent,Likes,NOMBRE):-
-NOMBRE=[ID,Autor,Texto,Fecha,Cuerpo,Destinatarios,Likes].
+NOMBRE=[ID,Autor,Texto,Fecha,Cuerpo,Destinatarios,ListComent,Likes].
 %selectores preguntas
 getIDPubli([ID,_,_,_,_,_,_,_],ID).
 getAutorPubli([_,Autor,_,_,_,_,_,_],Autor ). 
@@ -125,6 +125,9 @@ existeUser([_|[Username|_]],UserBuscado,X):-
     (Username = UserBuscado, X=true) ; (Username \= UserBuscado, X=false).
 existeUser([],_,X):- X=false .
 
+%esta funcion revisa una parametro de entrada y entrega un resultado segun su valor
+revisarBool(A,_,true,A).
+revisarBool(_,B,false,B).
 %%%%%%%%%%%
 %FUNCIONES%
 %%%%%%%%%%%
@@ -138,4 +141,32 @@ socialNetworkRegister(Sn1, Fecha, Username, Password, Sn2):-
     %debo reviar si existe otro usuario con el mismo nombre
     %en caso de que exista entonces entrego SN2 
     %en caso de no estar entrego Sn2 con el usuario registrado
-    Sn2=[Fecha,Username,Password].
+
+    %OBTENGO TODO LO DE LA RS
+    getNombreRS(Sn1, NameRS),
+    getDateRS(Sn1, DateRS),
+    getUserOn(Sn1, UserOn),
+    getCantPubli(Sn1, CantPubliRS),
+    getListPubli(Sn1, ListaPreguntasRS),
+    getCantUsers(Sn1, CantUserRS),
+    getListUser(Sn1, ListaUserRS),
+    getCantComent(Sn1, CantComentRS),
+    getListComent(Sn1, ListComentRS),
+
+    %creo el user con estos datos entregados
+    IDuser is CantUserRS + 1,
+    crearUser( IDuser ,Username,Password,Fecha,[],[],NuevoUsuario),
+
+    %reviso si existe user en la lista de usuarios
+    %creo la "var" EstaRegistrado la cual almacenara true o false si esque existe o no
+    existeUser(ListaUserRS,Username,EstaRegistrado),
+    
+    %creo una lista de usuarios nueva con el usuario agregado al final
+    agregarAlFinal(ListaUserRS, NuevoUsuario, ListaUsersRSV2),
+
+    %ahora mediante una funcion que revisara la var "EstaRegistrado" me entregara la lista de usuarios orignal o la modificada
+    %guardando esto en una nueva variable siendo esta la lista de usuarios finales.
+    revisarBool(ListaUserRS,ListaUsersRSV2,EstaRegistrado,UsuariosFinal),
+
+    %con todo esto creare una "nueva" RS entregandola como resultado utilizando mi constructor
+    crearRS(NameRS,DateRS,UserOn,CantPubliRS,ListaPreguntasRS,CantUserRS,UsuariosFinal,CantComentRS,ListComentRS,Sn2).
