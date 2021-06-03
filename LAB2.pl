@@ -23,6 +23,8 @@ getCantUsers([_,_,_,_,_,CantUser,_,_,_], CantUser).
 getListUser([_,_,_,_,_,_,ListaUser,_,_], ListaUser).
 getCantComent([_,_,_,_,_,_,_,CantComent,_], CantComent).
 getListComent([_,_,_,_,_,_,_,_,ListComent], ListComent).
+
+
 /*FECHA
 TDA FECHA
 lista con la forma
@@ -33,12 +35,14 @@ fecha(D,M,Y,_):- D>28,M=2,!,false.
 fecha(D,M,Y,_):- D>30,(M=2;M=6;M=9;M=11),!,false.
 %si no cumple  los anteriores entrara en esta 
 fecha(D,M,Y,[D,M,Y]):-
-    number(D),number(M),number(Y)
-    D>0,(D<31;D=31),M>0,(M<12;M=12),!.
+    number(D),number(M),number(Y),
+    D>0,(D<31;D=31), M>0 ,( M<12 ; M=12),!.
 
 fechaGetD([D,M,Y],D).
 fechaGetM([D,M,Y],M).
 fechaGetY([D,M,Y],Y).
+
+
 /*
 TDA PUBLICACION
 una publicacion una lista con la siguiente forma
@@ -57,6 +61,8 @@ getDestiPubli([_,_,_,_,_,Desti,_,_], Desti).
 getComentPubli([_,_,_,_,ListComent,_,_,_],ListComent).
 getLikesPubli([_,_,_,_,_,_,_,Likes], Likes).
 
+
+
 /*
 TDA USUARIOS
 un usuario es una lista con la siguiente forma
@@ -73,3 +79,28 @@ getFECHARUser([_,_,_,FechaR,_,_],FechaR ).
 getLISTPUBLIUser([_,_,_,_,ListaPubli,_],ListaPubli ).
 getLISTCOMENTUser([_,_,_,_,_,ListaComent],ListaComent ).
 
+%este "selector" obtiene la lista del usuario buscado dentro de la lista de usuarios
+getUserLista([[ID,Username,Password,FechaR,ListaPubli,ListaComent]|RestoUsers],UserBuscado,Lista):-  
+    (Username = UserBuscado, Lista=[ID,Username,Password,FechaR,ListaPubli,ListaComent]); getUserLista(RestoUsers,UserBuscado,Lista).
+getUserLista([_|[ID,Username,Password,FechaR,ListaPubli,ListaComent]],UserBuscado,Lista):- 
+    (Username = UserBuscado, Lista=[ID,Username,Password,FechaR,ListaPubli,ListaComent]).
+
+
+
+/*
+TDA COMENTARIO
+un comentario es una respuesta a la lista
+[ ID,"autor","Fecha","Cuerpo de la respuesta",listaComentarios,IDPublicacion,likes,]
+*/
+%Constructor Respuesta
+crearRespuesta(ID,Autor,Fecha,CuerpoTexto,ListComent,IDpubli,Likes,NOMBRERespuesta):-
+    NOMBRERespuesta=[ID,Autor,Fecha,CuerpoTexto,ListComent,IDpubli,Likes].
+
+%selectores TDA comentario
+getResp([ID,_,_,_,_,_,_],ID).
+getResp([_,Autor,_,_,_,_,_],Autor).
+getResp([_,_,Fecha,_,_,_,_],Fecha).
+getResp([_,_,_,CuerpoTexto,_,_,_],CuerpoTexto).
+getResp([_,_,_,_,ListComent,_,_],ListComent).
+getResp([_,_,_,_,_,IDpubli,_],IDpubli).
+getResp([_,_,_,_,_,_,Likes],Likes).
