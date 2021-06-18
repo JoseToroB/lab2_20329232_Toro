@@ -55,8 +55,8 @@ una publicacion una lista con la siguiente forma
 [ id_Pregunta(entero),"autor","Fecha","Cuerpo de la pregunta",destinatarios,likes]
 */
 %CONSTRUCTOR PREGUNTA
-crearPregunta(ID,Autor,Texto,Fecha,Cuerpo,Destinatarios,ListComent,Likes,NOMBRE):-
-NOMBRE=[ID,Autor,Texto,Fecha,Cuerpo,Destinatarios,ListComent,Likes].
+crearPregunta(ID,Autor,Fecha,Cuerpo,Destinatarios,ListComent,Likes,NOMBRE):-
+NOMBRE=[ID,Autor,"formato texto",Fecha,Cuerpo,Destinatarios,ListComent,Likes].
 %selectores preguntas
 getIDPubli([ID,_,_,_,_,_,_,_],ID).
 getAutorPubli([_,Autor,_,_,_,_,_,_],Autor ). 
@@ -124,8 +124,7 @@ existeUser([H|_],User):-
     (User = Username).
 existeUser([_|T], User) :- existeUser(T, User).
 
-% Dominio: list X string X string
-%Predicado que verifica si el usuario y su contraseña coinciden.
+% BUSCA UN USUARIO Y LO ENTRAGA SI SU NICK Y PASS SON CORRECTOS
 buscarUserPass([Cabeza|_],User,Pass):-
     getNAMEUser(Cabeza,Username),
     getPASSUser(Cabeza,Password),
@@ -133,10 +132,25 @@ buscarUserPass([Cabeza|_],User,Pass):-
     (Pass = Password).
 buscarUserPass([_|Cola], User, Pass) :- buscarUserPass(Cola, User, Pass).
 
+%busca un usuario por su nick y retorna sus datos
+buscarUsuarioNick([Cabeza|_],User,Lista):-
+    getNAMEUser(Cabeza,Username),
+    (User = Username),
+    (Cabeza = Lista).
+buscarUsuarioNick([_|Cola], User,Preguntas) :- buscarUsuarioNick(Cola,User,Preguntas).
 
-%esta funcion revisa una parametro de entrada y entrega un resultado segun su valor
-revisarBool(A,_,true,A).
-revisarBool(_,B,false,B).
+%retorno un usuario "nuevo" con un usuario como base
+agregarPubliUser([ID,Username,Password,FechaR,ListaPubli,ListaComent],IDPUBLI,NuevoUsuario):-
+    append(ListaPubli,[IDPUBLI],NuevaLista),
+    crearUser(ID,Username,Password,FechaR,NuevaLista,ListaComent,NuevoUsuario).
+
+remover(_, [], []).
+
+remover(Y, [Y|Xs], Zs):-
+          remover(Y, Xs, Zs), !.
+
+remover(X, [Y|Xs], [Y|Zs]):-
+          remover(X, Xs, Zs).
 %%%%%%%%%%%
 %FUNCIONES%
 %%%%%%%%%%%
@@ -147,8 +161,8 @@ Para esto se ingresa un SocialNetwork inicial, nombre del usuario, contraseña y
 El retorno del predicado es true en caso que se pudo satisfacer el registro del usuario.
 */
 socialNetworkRegister([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Fecha, Username, Password,Sn2 ):- 
-    string(Username),%los username solo pueden ser string al igual que las contraseñas
-    string(Password),
+    string(Username),not(Username=""),!,%los username solo pueden ser string(distintos a "") al igual que las contraseñas
+    string(Password),not(Username=""),!,
     %creo el user con estos datos entregados
     IDuser is CantUser + 1,
     crearUser( IDuser ,Username,Password,Fecha,[],[],NuevoUsuario),
@@ -173,3 +187,41 @@ socialNetworkLogin([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser
     buscarUserPass(Usuarios,Username,Password),!,
     %si da true entonces retorno la SN con el user logeado
     crearRS(Name,Date,Username,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent,Sn2).
+
+/*
+(0.5 pts) socialNetworkPost: 
+Predicado que permite a un usuario con sesión iniciada en la plataforma realizar una nueva publicación propia o dirigida a otros usuarios. 
+Cada publicación registra el autor de la misma (obtenido desde la sesión iniciada con login), 
+fecha de publicación (tipo Date), el tipo de publicación (“photo”, “video”, “url”, “text”, “audio”) 
+y el contenido de la publicación (solo debe ser un string). 
+El retorno es true si se puede satisfacer en “Sn2” el TDA SocialNetwork con la nueva publicación incluida 
+y sin la sesión activa del usuario que realizó la publicación.
+*/
+socialNetworkPost([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Fecha, Texto, ListaUsernamesDest, Sn2):-
+    %reviso que las entradas sean validas
+    string(Fecha),
+    string(Texto),
+    is_list(ListaUsernamesDest),
+    %Se verifica si hay un usuario conectado
+    not(UserOn=""),!,
+    %Se crea la publicacion
+    ID is CantPubli+1,
+    crearPregunta(ID,UserOn,Fecha,Texto,ListaUsernamesDest,[],0,Publi),
+    %se agrega la publicacion a la lista de publicaciones
+    append(ListaPreguntas,[Publi],ListaPublisFinales),
+    %Se busca al autor de la pregunta, que es el usuario Conectado
+    buscarUsuarioNick(ListaUser,UserOn,USUARIOon),
+    %Se agrega el id de la pregunta al usuario que la hizo
+    %obtengo los datos restantes del usuario para generar uno "nuevo"
+    getIDUser(USUARIOon,IDu),
+    getPASSUser(USUARIOon,Password ),
+    getFECHARUser(USUARIOon,FechaR ),
+    getLISTPUBLIUser(USUARIOon,PublicacionesUser),
+    getLISTCOMENTUser(USUARIOon,ListaComentu),
+    agregarAlFinal(PublicacionesUser,ID,PublicacionesUserFinales),
+    crearUser(IDu,UserOn,Password,FechaR,PublicacionesUserFinales,ListaComentu,UserActualizado),
+    %se reemplaza al usuario
+    remover(USUARIOon,ListaUser,ListaUserActualizada),
+    agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
+    %creo la SN con el user offline y los datos actualizados
+    crearRS(Name,Date,"",ID,ListaPublisFinales,CantUser,UsuariosFinales,CantComent,ListComent,Sn2).
