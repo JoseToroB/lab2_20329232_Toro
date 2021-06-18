@@ -75,16 +75,17 @@ un usuario es una lista con la siguiente forma
 [ ID,"username","password","fecha registro",[lista ids publicaciones realizadas], [lista ids comentarios realizadas] ]
 */
 %constructores usuario (uno para crear un usuario nuevo y otro que crea usuarios con parametros que yo elijo)
-crearUser(ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos,NuevoUsuario):-
-    NuevoUsuario=[ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos].
+crearUser(ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos,Compartidas,NuevoUsuario):-
+    NuevoUsuario=[ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos,Compartidas].
 %selectores TDA usuario
-getIDUser([ID,_,_,_,_,_,_],ID ).
-getNAMEUser([_,Username,_,_,_,_,_],Username ).
-getPASSUser([_,_,Password,_,_,_,_],Password ).
-getFECHARUser([_,_,_,FechaR,_,_,_],FechaR ).
-getLISTPUBLIUser([_,_,_,_,ListaPubli,_,_],ListaPubli ).
-getLISTCOMENTUser([_,_,_,_,_,ListaComent,_],ListaComent ).
-getAmigosUser([_,_,_,_,_,_,Amigos],Amigos).
+getIDUser([ID,_,_,_,_,_,_,_],ID ).
+getNAMEUser([_,Username,_,_,_,_,_,_],Username ).
+getPASSUser([_,_,Password,_,_,_,_,_],Password ).
+getFECHARUser([_,_,_,FechaR,_,_,_,_],FechaR ).
+getLISTPUBLIUser([_,_,_,_,ListaPubli,_,_,_],ListaPubli ).
+getLISTCOMENTUser([_,_,_,_,_,ListaComent,_,_],ListaComent ).
+getAmigosUser([_,_,_,_,_,_,Amigos,_],Amigos).
+getCompartidasUser([_,_,_,_,_,_,_,Compartidas],Compartidas).
 
 %este "selector" obtiene la lista del usuario buscado dentro de la lista de usuarios
 getUserLista([[ID,Username,Password,FechaR,ListaPubli,ListaComent]|RestoUsers],UserBuscado,Lista):-  
@@ -141,9 +142,9 @@ buscarUsuarioNick([Cabeza|_],User,Lista):-
 buscarUsuarioNick([_|Cola], User,Preguntas) :- buscarUsuarioNick(Cola,User,Preguntas).
 
 %retorno un usuario "nuevo" con un usuario como base
-agregarPubliUser([ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos],IDPUBLI,NuevoUsuario):-
+agregarPubliUser([ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos,Comp],IDPUBLI,NuevoUsuario):-
     append(ListaPubli,[IDPUBLI],NuevaLista),
-    crearUser(ID,Username,Password,FechaR,NuevaLista,ListaComent,Amigos,NuevoUsuario).
+    crearUser(ID,Username,Password,FechaR,NuevaLista,ListaComent,Amigos,Comp,NuevoUsuario).
 
 remover(_, [], []).
 remover(Y, [Y|Xs], Zs):-
@@ -155,6 +156,9 @@ estaEN(X,[]):-!,fail.
 estaEN(X,[X|_]).
 estaEn(X,[H|T]):-estaEN(X,T).
 
+existePost(PostId,[]).
+existePost(PostId,[[PostId|_]|T]).
+existePost(PostId,[H|T]):-existePost(PostId,T).
 %%%%%%%%%%%
 %FUNCIONES%
 %%%%%%%%%%%
@@ -169,7 +173,7 @@ socialNetworkRegister([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
     string(Password),not(Username=""),!,
     %creo el user con estos datos entregados
     IDuser is CantUser + 1,
-    crearUser( IDuser ,Username,Password,Fecha,[],[],[],NuevoUsuario),
+    crearUser( IDuser ,Username,Password,Fecha,[],[],[],[],NuevoUsuario),
     %reviso que el usuario no exista, si me da false entonces no hago backtracing
     %y retorno false
     not(existeUser(ListaUser,Username)),!,
@@ -223,8 +227,9 @@ socialNetworkPost([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,
     getLISTPUBLIUser(USUARIOon,PublicacionesUser),
     getLISTCOMENTUser(USUARIOon,ListaComentu),
     getAmigosUser(USUARIOon,Amigos),
+    getCompartidasUser(USUARIOon,Compartidas),
     agregarAlFinal(PublicacionesUser,ID,PublicacionesUserFinales),
-    crearUser(IDu,UserOn,Password,FechaR,PublicacionesUserFinales,ListaComentu,Amigos,UserActualizado),
+    crearUser(IDu,UserOn,Password,FechaR,PublicacionesUserFinales,ListaComentu,Amigos,Compartidas,UserActualizado),
     %se reemplaza al usuario
     remover(USUARIOon,ListaUser,ListaUserActualizada),
     agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
@@ -256,14 +261,50 @@ socialNetworkFollow([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUse
     getLISTPUBLIUser(UsuarioOn,ListaPubliU),
     getLISTCOMENTUser(UsuarioOn,ListaComentU),
     getAmigosUser(UsuarioOn,Amigos),
+    getCompartidasUser(UsuarioOn,Compartidas),
     %revisamos que Seguir no este dentro de amigos
     %en caso de estar tirara false y no avanzara
     not(estaEN(Seguir,Amigos)),!,
     %agregamos el nombre del amigo al final de su lista de amigos
     agregarAlFinal(Amigos,Seguir,AmigosFinal),
     %creamos al usuario nuevamente con su lista actualizada
-    crearUser(IDu,UserOn,Passwordu,FechaR,ListaPubliU,ListaComentU,AmigosFinal,UserActualizado),
+    crearUser(IDu,UserOn,Passwordu,FechaR,ListaPubliU,ListaComentU,AmigosFinal,Compartidas,UserActualizado),
     %con el user actualizado, removemos su version anterior
+    remover(UsuarioOn,ListaUser,ListaUserActualizada),
+    agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
+    %creo la SN con el user offline y los datos actualizados
+    crearRS(Name,Date,"",CantPubli,ListaPreguntas,CantUser,UsuariosFinales,CantComent,ListComent,Sn2).
+/*
+(0.5 pts) socialNetworkShare: 
+Predicado que permite a un usuario con sesión iniciada en la plataforma compartir 
+contenido de otro usuario en su propio espacio o dirigido a otros usuarios más. 
+El retorno es true si se puede satisfacer en “Sn2” 
+el TDA SocialNetwork con un registro de la publicación compartida y sin la sesión activa del usuario.
+*/
+%como no se niega que alguien pueda compartir varias veces la misma publicacion, dentro de mi codigo si esta permitido
+socialNetworkShare([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Fecha, PostId, ListaUsernamesDest, Sn2):-
+    %reviso exista alguien online
+    not(UserOn=""),!,
+    %fecha sea string
+    string(Fecha),!,
+    %reviso la lista de usuarios sea valida
+    is_list(ListaUsernamesDest),
+    %reviso exista un post con tal ID
+    existePost(PostId,ListaPreguntas),!,
+    %busco al usuario y obtengo el resto de sus valores para luego en la lista de compartidos agregar la nueva publicacion
+    buscarUsuarioNick(ListaUser,UserOn,UsuarioOn),
+    %obtenemos todos los datos restantes del usuario
+    getIDUser(UsuarioOn,IDu),
+    getPASSUser(UsuarioOn,Passwordu),
+    getFECHARUser(UsuarioOn,FechaR),
+    getLISTPUBLIUser(UsuarioOn,ListaPubliU),
+    getLISTCOMENTUser(UsuarioOn,ListaComentU),
+    getAmigosUser(UsuarioOn,Amigos),
+    getCompartidasUser(UsuarioOn,Compartidas),
+    %agrego la publicacion compartida con el formato [fecha,postID,ETIQUETADOS]
+    agregarAlFinal(Compartidas,[Fecha,PostId,ListaUsernamesDest],CompartidasFinal),
+    %creamos al usuario nuevamente con su lista actualizada
+    crearUser(IDu,UserOn,Passwordu,FechaR,ListaPubliU,ListaComentU,Amigos,CompartidasFinal,UserActualizado),
     remover(UsuarioOn,ListaUser,ListaUserActualizada),
     agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
     %creo la SN con el user offline y los datos actualizados
