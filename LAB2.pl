@@ -124,6 +124,15 @@ existeUser([H|_],User):-
     (User = Username).
 existeUser([_|T], User) :- existeUser(T, User).
 
+% Dominio: list X string X string
+%Predicado que verifica si el usuario y su contraseña coinciden.
+buscarUserPass([Cabeza|_],User,Pass):-
+    getNAMEUser(Cabeza,Username),
+    getPASSUser(Cabeza,Password),
+    (User = Username),
+    (Pass = Password).
+buscarUserPass([_|Cola], User, Pass) :- buscarUserPass(Cola, User, Pass).
+
 
 %esta funcion revisa una parametro de entrada y entrega un resultado segun su valor
 revisarBool(A,_,true,A).
@@ -149,3 +158,18 @@ socialNetworkRegister([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
     %creo una lista de usuarios nueva con el usuario agregado al final
     agregarAlFinal(ListaUser, NuevoUsuario, ListaUsersRSV2),
     crearRS(Name,Date,UserOn,CantPubli,ListaPreguntas,IDuser,ListaUsersRSV2,CantComent,ListComent,Sn2).
+
+/*
+(0.5 pts) socialNetworkLogin: 
+Predicado que permite autenticar a un usuario registrado. 
+Si la autenticación es válida (i.e., que el usuario existe y su contraseña es correcta)e l retorno es true. 
+La actualización del stack incorpora al usuario autenticado en sesión activa (fundamental para que los predicados siguientes puedan funcionar).
+*/
+socialNetworkLogin([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent],Username, Password,Sn2 ):- 
+    %compruebo nombre y pass sean strings
+    string(Username),
+    string(Password),
+    %reviso que username y pass sean correctos 
+    buscarUserPass(Usuarios,Username,Password),!,
+    %si da true entonces retorno la SN con el user logeado
+    crearRS(Name,Date,Username,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent,Sn2).
