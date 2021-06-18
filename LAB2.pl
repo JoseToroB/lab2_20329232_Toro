@@ -75,15 +75,16 @@ un usuario es una lista con la siguiente forma
 [ ID,"username","password","fecha registro",[lista ids publicaciones realizadas], [lista ids comentarios realizadas] ]
 */
 %constructores usuario (uno para crear un usuario nuevo y otro que crea usuarios con parametros que yo elijo)
-crearUser(ID,Username,Password,FechaR,ListaPubli,ListaComent,NuevoUsuario):-
-    NuevoUsuario=[ID,Username,Password,FechaR,ListaPubli,ListaComent].
+crearUser(ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos,NuevoUsuario):-
+    NuevoUsuario=[ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos].
 %selectores TDA usuario
-getIDUser([ID,_,_,_,_,_],ID ).
-getNAMEUser([_,Username,_,_,_,_],Username ).
-getPASSUser([_,_,Password,_,_,_],Password ).
-getFECHARUser([_,_,_,FechaR,_,_],FechaR ).
-getLISTPUBLIUser([_,_,_,_,ListaPubli,_],ListaPubli ).
-getLISTCOMENTUser([_,_,_,_,_,ListaComent],ListaComent ).
+getIDUser([ID,_,_,_,_,_,_],ID ).
+getNAMEUser([_,Username,_,_,_,_,_],Username ).
+getPASSUser([_,_,Password,_,_,_,_],Password ).
+getFECHARUser([_,_,_,FechaR,_,_,_],FechaR ).
+getLISTPUBLIUser([_,_,_,_,ListaPubli,_,_],ListaPubli ).
+getLISTCOMENTUser([_,_,_,_,_,ListaComent,_],ListaComent ).
+getAmigosUser([_,_,_,_,_,_,Amigos],Amigos).
 
 %este "selector" obtiene la lista del usuario buscado dentro de la lista de usuarios
 getUserLista([[ID,Username,Password,FechaR,ListaPubli,ListaComent]|RestoUsers],UserBuscado,Lista):-  
@@ -140,17 +141,20 @@ buscarUsuarioNick([Cabeza|_],User,Lista):-
 buscarUsuarioNick([_|Cola], User,Preguntas) :- buscarUsuarioNick(Cola,User,Preguntas).
 
 %retorno un usuario "nuevo" con un usuario como base
-agregarPubliUser([ID,Username,Password,FechaR,ListaPubli,ListaComent],IDPUBLI,NuevoUsuario):-
+agregarPubliUser([ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos],IDPUBLI,NuevoUsuario):-
     append(ListaPubli,[IDPUBLI],NuevaLista),
-    crearUser(ID,Username,Password,FechaR,NuevaLista,ListaComent,NuevoUsuario).
+    crearUser(ID,Username,Password,FechaR,NuevaLista,ListaComent,Amigos,NuevoUsuario).
 
 remover(_, [], []).
-
 remover(Y, [Y|Xs], Zs):-
-          remover(Y, Xs, Zs), !.
-
+    remover(Y, Xs, Zs), !.
 remover(X, [Y|Xs], [Y|Zs]):-
-          remover(X, Xs, Zs).
+    remover(X, Xs, Zs).
+
+estaEN(X,[]):-!,fail.
+estaEN(X,[X|_]).
+estaEn(X,[H|T]):-estaEN(X,T).
+
 %%%%%%%%%%%
 %FUNCIONES%
 %%%%%%%%%%%
@@ -165,7 +169,7 @@ socialNetworkRegister([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
     string(Password),not(Username=""),!,
     %creo el user con estos datos entregados
     IDuser is CantUser + 1,
-    crearUser( IDuser ,Username,Password,Fecha,[],[],NuevoUsuario),
+    crearUser( IDuser ,Username,Password,Fecha,[],[],[],NuevoUsuario),
     %reviso que el usuario no exista, si me da false entonces no hago backtracing
     %y retorno false
     not(existeUser(ListaUser,Username)),!,
@@ -218,10 +222,49 @@ socialNetworkPost([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,
     getFECHARUser(USUARIOon,FechaR ),
     getLISTPUBLIUser(USUARIOon,PublicacionesUser),
     getLISTCOMENTUser(USUARIOon,ListaComentu),
+    getAmigosUser(USUARIOon,Amigos),
     agregarAlFinal(PublicacionesUser,ID,PublicacionesUserFinales),
-    crearUser(IDu,UserOn,Password,FechaR,PublicacionesUserFinales,ListaComentu,UserActualizado),
+    crearUser(IDu,UserOn,Password,FechaR,PublicacionesUserFinales,ListaComentu,Amigos,UserActualizado),
     %se reemplaza al usuario
     remover(USUARIOon,ListaUser,ListaUserActualizada),
     agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
     %creo la SN con el user offline y los datos actualizados
     crearRS(Name,Date,"",ID,ListaPublisFinales,CantUser,UsuariosFinales,CantComent,ListComent,Sn2).
+
+/*
+(0.5 pts) socialNetworkFollow: 
+Predicado que permite a un usuario con sesión iniciada en la plataforma seguir a otro usuario. 
+El retorno es true si se puede satisfacer en “Sn2” el TDA SocialNetwork con algún indicativo de que el usuario que tiene sesión iniciada en “Sn1”
+ahora sigue al usuario “U” y sin la sesión activa del usuario.
+no se puede seguir a si mismo
+*/
+socialNetworkFollow([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Seguir, Sn2):-
+    %seguir es string, distinto a ""
+    string(Seguir),not(Seguir=""),!,
+    %revisamos exista el user Seguir
+    existeUser(ListaUser,Seguir),!,
+    %revisamos el user On sea distinto a ""
+    not(UserOn=""),!,
+    %reviso que UserOn != Seguir, reviso que existan.
+    not(UserOn=Seguir),!,
+    %buscamos los datos del user On para agregar el usuario a seguir
+    buscarUsuarioNick(ListaUser,UserOn,UsuarioOn),
+    %obtenemos todos los datos restantes del usuario
+    getIDUser(UsuarioOn,IDu),
+    getPASSUser(UsuarioOn,Passwordu),
+    getFECHARUser(UsuarioOn,FechaR),
+    getLISTPUBLIUser(UsuarioOn,ListaPubliU),
+    getLISTCOMENTUser(UsuarioOn,ListaComentU),
+    getAmigosUser(UsuarioOn,Amigos),
+    %revisamos que Seguir no este dentro de amigos
+    %en caso de estar tirara false y no avanzara
+    not(estaEN(Seguir,Amigos)),!,
+    %agregamos el nombre del amigo al final de su lista de amigos
+    agregarAlFinal(Amigos,Seguir,AmigosFinal),
+    %creamos al usuario nuevamente con su lista actualizada
+    crearUser(IDu,UserOn,Passwordu,FechaR,ListaPubliU,ListaComentU,AmigosFinal,UserActualizado),
+    %con el user actualizado, removemos su version anterior
+    remover(UsuarioOn,ListaUser,ListaUserActualizada),
+    agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
+    %creo la SN con el user offline y los datos actualizados
+    crearRS(Name,Date,"",CantPubli,ListaPreguntas,CantUser,UsuariosFinales,CantComent,ListComent,Sn2).
