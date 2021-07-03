@@ -309,3 +309,20 @@ socialNetworkShare([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser
     agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
     %creo la SN con el user offline y los datos actualizados
     crearRS(Name,Date,"",CantPubli,ListaPreguntas,CantUser,UsuariosFinales,CantComent,ListComent,Sn2).
+
+/*
+(0.5 pts) socialNetworkToString: 
+Predicado que permite obtener una representación de un TDA socialNetwork como un string posible de visualizar de forma comprensible al usuario. 
+Debe hacer uso del char ‘\n’ para los saltos de línea. No utilice los predicados write y display dentro de este requerimiento,
+ya que debe quedar en el último argumento un string el cual pueda luego ser pasado como argumento a los predicados “write” o “display” 
+para poder visualizarlo de forma comprensible al usuario.
+*/
+
+%to string con user offline
+socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
+    string_concat("caso1", "\n", StrOut).
+
+%to string con user online
+socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
+    string_concat("caso2", "\n", StrOut).
+    
