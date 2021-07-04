@@ -146,19 +146,29 @@ agregarPubliUser([ID,Username,Password,FechaR,ListaPubli,ListaComent,Amigos,Comp
     append(ListaPubli,[IDPUBLI],NuevaLista),
     crearUser(ID,Username,Password,FechaR,NuevaLista,ListaComent,Amigos,Comp,NuevoUsuario).
 
+%remover un elemento
 remover(_, [], []).
 remover(Y, [Y|Xs], Zs):-
     remover(Y, Xs, Zs), !.
 remover(X, [Y|Xs], [Y|Zs]):-
     remover(X, Xs, Zs).
 
+%saber si un elemento esta dentro de una lista
 estaEN(X,[]):-!,fail.
 estaEN(X,[X|_]).
 estaEn(X,[H|T]):-estaEN(X,T).
 
+%saber si existe un post
 existePost(PostId,[]).
 existePost(PostId,[[PostId|_]|T]).
 existePost(PostId,[H|T]):-existePost(PostId,T).
+
+%si la id del comentario actual es la buscada, lo entrego
+buscarComentario(ID,[[ID|REST]|T],[ID|REST]).
+%si la id del comentario actual no es la buscada, sigo buscando
+buscarComentario(ID,[H|T],COM):-
+    buscarComentario(ID,T,COM).
+    
 %%%%%%%%%%%
 %FUNCIONES%
 %%%%%%%%%%%
@@ -317,6 +327,118 @@ Debe hacer uso del char ‘\n’ para los saltos de línea. No utilice los predi
 ya que debe quedar en el último argumento un string el cual pueda luego ser pasado como argumento a los predicados “write” o “display” 
 para poder visualizarlo de forma comprensible al usuario.
 */
+%lista de amigos a string
+amigosToString([],"").
+amigosToString([H|T],AmigosStr):-
+    string_concat(H,"\n",S1),
+    amigosToString(T,S2),
+    string_concat(S1,S2,AmigosStr).
+
+%un solo comentario a string
+comentarioToString(IDActual,ComentariosTotales,String):-
+    %ya que la lista de comentarios almacena la ID de estos, entonces debo encontrar cada comentario ID x ID
+    %dentro de la lista de comentariosTotales.
+    buscarComentario(IDActual,ComentariosTotales,Comentario),
+    %obtenemos todas las partes de un comentario,
+    %  [ID,Autor,Fecha,CuerpoTexto,ListComent,IDpubli,Likes]
+    getIDResp(Comentario,ID),
+    getAUTORResp(Comentario,Autor),
+    getFECHAResp(Comentario,Fecha),
+    getCUERPOTXTResp(Comentario,CuerpoTexto),
+    getLISTCOMENTResp(Comentario,ListComent),
+    getIDPUBLIResp(Comentario,IDpubli),
+    getLIKESResp(Comentario,Likes),
+    %ahora generamos el string del comentario
+    atom_string(ID,IDSTR),
+    atom_string(Likes,LikesSTR),
+    string_concat("Autor: ",Autor,S0),
+    string_concat(S0,"   fecha:",SA),
+    string_concat(SA,Fecha,SD),
+    string_concat(SD,"\n",Sc),
+    string_concat(Sc,"Publicacion ID: ",SB),
+    string_concat(SB,IDSTR,S1),
+    string_concat(S1,"      Likes: ",S2),
+    string_concat(S2,LikesSTR,S3),
+    string_concat(S3,"\n",S4),
+    string_concat(S4,CuerpoTexto,S5),
+    string_concat(S5,"\n    ",S6),
+    %como un comentario puede tener comentarios, buscamos si este posee alguno
+    comentariosToString(ListComent,ComentariosTotales,ComentariosSTR),
+    string_concat(S6,ComentariosSTR,S7),
+    %en caso de existir comentarios se agregaran con este mismo formato 
+    string_concat(S7,"\n",String).
+%comentarios a string
+comentariosToString([],_,"").
+comentariosToString([H|T],ComentariosTotales,ComentariosSTR):-
+    comentarioToString(H,ComentariosTotales,S1),
+    comentariosToString(T,ComentariosTotales,S2),
+    string_concat(S1,S2,ComentariosSTR).
+
+%una sola pregunta a string
+preguntaToString([ID,Autor,Formato,Fecha,Cuerpo,Destinatarios,ListComent,Likes],ComentariosTotales,String):-
+    %transformo en strin lo que corresponda
+    atom_string(ID,IDSTR),
+    atom_string(Likes,LikesSTR),
+    amigosToString(Destinatarios,EtiquetadosSTR),
+    comentariosToString(ListComent,ComentariosTotales,ComentariosSTR),
+    %con todo eso listo, creare el string
+    string_concat("Autor: ",Autor,S0),
+    string_concat(S0,"\n",SA),
+    string_concat(SA,"Publicacion ID: ",SB),
+    string_concat(SB,IDSTR,S1),
+    string_concat(S1,"      Likes: ",S2),
+    string_concat(S2,LikesSTR,S3),
+    string_concat(S3,"\n",S4),
+    string_concat(S4,Cuerpo,S5),
+    string_concat(S5,"\n",S6),
+    string_concat(S6,"Etiquetados: ",S7),
+    string_concat(S7,EtiquetadosSTR,S8),
+    string_concat(S8,"\n",S9),
+    string_concat(S9,ComentariosSTR,String).
+
+
+%lista de preguntas a string con sus comentarios correspondientes.
+preguntasYrespuestasToString([],_,"").
+preguntasYrespuestasToString([H|T],ListComent,StringSalida):-
+    preguntaToString(H,ListComent,S1),
+    preguntasYrespuestasToString(T,ListComent,S2),
+    string_concat(S1,S2,StringSalida).
+
+%una publicaicon compartida a string
+compartidaToString([FechaCompartida,IDComp,Etiquetados],ListaPreguntas,String):-
+    %ya que las publicaciones y los comentarios tienen la id en la primera posicion, la funcion que busca comentarios la puedo reutilizar en este caso
+    buscarComentario(IDComp,ListaPreguntas,PubliComp),
+    %ahora obtengo todo lo necesario de la publicacion compartida
+    getIDPubli(PubliComp,ID),
+    getAutorPubli(PubliComp,Autor ),
+    getTextoPubli(PubliComp,Texto ),
+    getFechaPubli(PubliComp, Fecha),
+    getCuerpoPubli(PubliComp,Cuerpo),
+    getDestiPubli(PubliComp, Desti),
+    getComentPubli(PubliComp,ListComent),
+    getLikesPubli(PubliComp, Likes),
+    %pasando atomos a string
+    atom_string(ID,IDSTR),
+    atom_string(Likes,LikesSTR),
+    string_concat("Fecha compartida: ",FechaCompartida,S1),
+    string_concat(S1,"\n",S2),
+    string_concat(S2,"Autor Original: ",S3),
+    string_concat(S3,Autor,S4),
+    string_concat(S4,"     fecha original:",S5),
+    string_concat(S5,Fecha,S6),
+    string_concat(S6,"   likes originales:",S7),
+    string_concat(S7,LikesSTR,S8),
+    string_concat(S8,"\n",S9),
+    string_concat(S9,Cuerpo,S10),
+    string_concat(S10,"\n",String).
+
+
+%compartidas to string
+compartidasToString([],_,"").
+compartidasToString([H|T],ListaPreguntas,String):-
+    compartidaToString(H,ListaPreguntas,S1),
+    compartidasToString(T,ListaPreguntas,S2),
+    string_concat(S1,S2,String).
 
 %to string con user offline
 socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
@@ -324,5 +446,27 @@ socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,
 
 %to string con user online
 socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
-    string_concat("caso2", "\n", StrOut).
-    
+    %como existe un user online, obtendre sus datos completos (fecha registro, amigos, publicaciones y las respuestas de estas publicaciones)
+    buscarUsuarioNick(ListaUser,UserOn,UsuarioOn),
+    %obtenemos todos los datos restantes del usuario
+    getIDUser(UsuarioOn,IDu),
+    getPASSUser(UsuarioOn,Passwordu),
+    getFECHARUser(UsuarioOn,FechaR),
+    getLISTPUBLIUser(UsuarioOn,ListaPubliU),
+    getLISTCOMENTUser(UsuarioOn,ListaComentU),
+    getAmigosUser(UsuarioOn,Amigos),
+    getCompartidasUser(UsuarioOn,Compartidas),
+    %con todo esto comenzare a crear el string correspondiente
+    string_concat(UserOn,"  ",S1),
+    string_concat(S1,FechaR,S2),
+    string_concat(S2,"\nAmigos\n",S3),
+    %agrego los amigos listados 
+    amigosToString(Amigos,AmigosStr),
+    string_concat(S3,AmigosStr,S4),
+    %ahora agregare las publicaciones y sus comentarios 
+    string_concat(S4,"Preguntas Realizadas \n",S5),
+    preguntasYrespuestasToString(ListaPubliU,ListComent,S6),
+    string_concat(S5,S6,S7),
+    %ahora agregare las publicaciones compartidas (pero sin sus comentarios)
+    compartidasToString(Compartidas,ListaPreguntas,S8),
+    string_concat(S7,S8,StrOut).
