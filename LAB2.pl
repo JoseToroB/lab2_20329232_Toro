@@ -4,9 +4,10 @@
 TDA RS
 una RS es una lista de TDA's
 (nombreRS,fechaRS,userOn,cantPubli,list publi,cantUsers, list usuarios,cantComent,list coment) y tiene la siguiente forma.
-[ "nombreRS", fechaRS=[1,2,2020], "usuario online",cantPubli(int),[list publicaciones],cantUsers (int), [list usuarios],CantComent,[ListComent]]
+[ "nombreRS", fechaRS=[1,2,2020], "usuario online",cantPubli(int),[list publicaciones],cantUsers (int), [list usuarios],CantComent(int),[ListComent]]
 sujeto a cambios
 */
+
 %Constructor de una RS
 socialNetwork(Name, Date, SOut):-SOut = [Name,Date,"",0,[],0,[],0,[]].
 %constructor de una RS vacio
@@ -28,35 +29,28 @@ getListComent([_,_,_,_,_,_,_,_,ListComent], ListComent).
 /*FECHA
 TDA FECHA
 lista con la forma
-[DD,MM,YYYY] donde todos sus valores son numeros
+"d/m/y"
 */
 %primero revisa sus parametros
 fecha(D,M,_,_):- D>28,M=2,!,false.
 fecha(D,M,_,_):- D>30,(M=2;M=6;M=9;M=11),!,false.
 %si no cumple  los anteriores entrara en esta 
-fecha(D,M,Y,[D,M,Y]):-
+fecha(D,M,Y,Fecha):-
     number(D),number(M),number(Y),
-    D>0,(D<31;D=31), M>0 ,( M<12 ; M=12),!.
-
-fechaGetD([D,_,_],D).
-fechaGetM([_,M,_],M).
-fechaGetY([_,_,Y],Y).
-
-esFecha([D.M,Y]):-  D>28,M=2,!,false.
-esFecha([D.M,Y]):-  D>30,(M=2;M=6;M=9;M=11),!,false.
-esFecha([D,M,Y]):-
-    number(D),number(M),number(Y),
-    D>0,(D<31;D=31), M>0 ,( M<12 ; M=12),!,true.
-
+    D>0,(D<31;D=31), M>0 ,( M<12 ; M=12),!,
+    string_concat(D,"/",F1),
+    string_concat(M,"/",F2),
+    string_concat(Y,"",Fecha).
 
 /*
 TDA PUBLICACION
 una publicacion una lista con la siguiente forma
-[ id_Pregunta(entero),"autor","Fecha","Cuerpo de la pregunta",destinatarios,likes]
+[ id_Pregunta(entero),"autor",formato,"Fecha","Cuerpo de la pregunta",destinatarios,likes]
 */
 %CONSTRUCTOR PREGUNTA
 crearPregunta(ID,Autor,Fecha,Cuerpo,Destinatarios,ListComent,Likes,NOMBRE):-
 NOMBRE=[ID,Autor,"formato texto",Fecha,Cuerpo,Destinatarios,ListComent,Likes].
+
 %selectores preguntas
 getIDPubli([ID,_,_,_,_,_,_,_],ID).
 getAutorPubli([_,Autor,_,_,_,_,_,_],Autor ). 
@@ -86,12 +80,6 @@ getLISTPUBLIUser([_,_,_,_,ListaPubli,_,_,_],ListaPubli ).
 getLISTCOMENTUser([_,_,_,_,_,ListaComent,_,_],ListaComent ).
 getAmigosUser([_,_,_,_,_,_,Amigos,_],Amigos).
 getCompartidasUser([_,_,_,_,_,_,_,Compartidas],Compartidas).
-
-%este "selector" obtiene la lista del usuario buscado dentro de la lista de usuarios
-getUserLista([[ID,Username,Password,FechaR,ListaPubli,ListaComent]|RestoUsers],UserBuscado,Lista):-  
-    (Username = UserBuscado, Lista=[ID,Username,Password,FechaR,ListaPubli,ListaComent]); getUserLista(RestoUsers,UserBuscado,Lista).
-getUserLista([_|[ID,Username,Password,FechaR,ListaPubli,ListaComent]],UserBuscado,Lista):- 
-    (Username = UserBuscado, Lista=[ID,Username,Password,FechaR,ListaPubli,ListaComent]).
 
 /*
 TDA COMENTARIO
@@ -180,7 +168,7 @@ El retorno del predicado es true en caso que se pudo satisfacer el registro del 
 */
 socialNetworkRegister([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Fecha, Username, Password,Sn2 ):- 
     string(Username),not(Username=""),!,%los username solo pueden ser string(distintos a "") al igual que las contraseñas
-    string(Password),not(Username=""),!,
+    string(Password),not(Password=""),!,
     %creo el user con estos datos entregados
     IDuser is CantUser + 1,
     crearUser( IDuser ,Username,Password,Fecha,[],[],[],[],NuevoUsuario),
@@ -202,7 +190,7 @@ socialNetworkLogin([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser
     string(Username),
     string(Password),
     %reviso que username y pass sean correctos 
-    buscarUserPass(Usuarios,Username,Password),!,
+    buscarUserPass(ListaUser,Username,Password),!,
     %si da true entonces retorno la SN con el user logeado
     crearRS(Name,Date,Username,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent,Sn2).
 
@@ -329,6 +317,7 @@ para poder visualizarlo de forma comprensible al usuario.
 */
 %lista de amigos a string
 amigosToString([],"").
+
 amigosToString([H|T],AmigosStr):-
     string_concat(H,"\n",S1),
     amigosToString(T,S2),
@@ -399,6 +388,7 @@ preguntaToString([ID,Autor,Formato,Fecha,Cuerpo,Destinatarios,ListComent,Likes],
 
 %lista de preguntas a string con sus comentarios correspondientes.
 preguntasYrespuestasToString([],_,"").
+
 preguntasYrespuestasToString([H|T],ListComent,StringSalida):-
     preguntaToString(H,ListComent,S1),
     preguntasYrespuestasToString(T,ListComent,S2),
@@ -410,13 +400,13 @@ compartidaToString([FechaCompartida,IDComp,Etiquetados],ListaPreguntas,String):-
     buscarComentario(IDComp,ListaPreguntas,PubliComp),
     %ahora obtengo todo lo necesario de la publicacion compartida
     getIDPubli(PubliComp,ID),
-    getAutorPubli(PubliComp,Autor ),
-    getTextoPubli(PubliComp,Texto ),
-    getFechaPubli(PubliComp, Fecha),
+    getAutorPubli(PubliComp,Autor),
+    getTextoPubli(PubliComp,Texto),
+    getFechaPubli(PubliComp,Fecha),
     getCuerpoPubli(PubliComp,Cuerpo),
-    getDestiPubli(PubliComp, Desti),
+    getDestiPubli(PubliComp,Desti),
     getComentPubli(PubliComp,ListComent),
-    getLikesPubli(PubliComp, Likes),
+    getLikesPubli(PubliComp,Likes),
     %pasando atomos a string
     atom_string(ID,IDSTR),
     atom_string(Likes,LikesSTR),
@@ -435,14 +425,11 @@ compartidaToString([FechaCompartida,IDComp,Etiquetados],ListaPreguntas,String):-
 
 %compartidas to string
 compartidasToString([],_,"").
+
 compartidasToString([H|T],ListaPreguntas,String):-
     compartidaToString(H,ListaPreguntas,S1),
     compartidasToString(T,ListaPreguntas,S2),
     string_concat(S1,S2,String).
-
-%to string con user offline
-socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
-    string_concat("caso1", "\n", StrOut).
 
 %to string con user online
 socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
@@ -464,9 +451,16 @@ socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
     amigosToString(Amigos,AmigosStr),
     string_concat(S3,AmigosStr,S4),
     %ahora agregare las publicaciones y sus comentarios 
-    string_concat(S4,"Preguntas Realizadas \n",S5),
+    string_concat(S4,"Publicaciones\n",S5),
     preguntasYrespuestasToString(ListaPubliU,ListComent,S6),
     string_concat(S5,S6,S7),
     %ahora agregare las publicaciones compartidas (pero sin sus comentarios)
+    string_concat(S7,"Publicaciones Compartidas\n",Sa),
     compartidasToString(Compartidas,ListaPreguntas,S8),
-    string_concat(S7,S8,StrOut).
+    string_concat(Sa,S8,StrOut).
+
+
+
+%to string con user offline
+socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
+    string_concat("caso1", "\n", StrOut).
