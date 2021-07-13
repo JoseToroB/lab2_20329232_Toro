@@ -1,5 +1,5 @@
 /*LABORATORIO 2 PROLOG PRIMER COMMIT */
-%     set_prolog_flag(answer_write_options,[max_depth(0)]).         write('\e[2J').
+%     set_prolog_flag(answer_write_options,[max_depth(0)]),use_module(library(theme/dark)),write('\e[2J'). 
 /*
 TDA RS
 una RS es una lista de TDA's
@@ -26,9 +26,10 @@ getCantComent([_,_,_,_,_,_,_,CantComent,_], CantComent).
 getListComent([_,_,_,_,_,_,_,_,ListComent], ListComent).
 
 
-/*FECHA
+/*
+FECHA
 TDA FECHA
-lista con la forma
+con la forma
 "d/m/y"
 */
 %primero revisa sus parametros
@@ -58,9 +59,8 @@ getTextoPubli([_,_,Texto,_,_,_,_,_],Texto ).
 getFechaPubli([_,_,_,Fecha,_,_,_,_], Fecha).
 getCuerpoPubli([_,_,_,_,Cuerpo,_,_,_],Cuerpo).
 getDestiPubli([_,_,_,_,_,Desti,_,_], Desti).
-getComentPubli([_,_,_,_,ListComent,_,_,_],ListComent).
+getComentPubli([_,_,_,_,_,_,ListComent,_],ListComent).
 getLikesPubli([_,_,_,_,_,_,_,Likes], Likes).
-
 
 
 /*
@@ -156,7 +156,10 @@ buscarComentario(ID,[[ID|REST]|T],[ID|REST]).
 %si la id del comentario actual no es la buscada, sigo buscando
 buscarComentario(ID,[H|T],COM):-
     buscarComentario(ID,T,COM).
-    
+
+%esto revisa si cada elemento de una lista esta dentro de otra lista (lo utilizo para los etiquetados asique mi caso base en )
+existeET([],L).
+existeET([H|T],L):-existeUser(L,H),existeET(T,L).
 %%%%%%%%%%%
 %FUNCIONES%
 %%%%%%%%%%%
@@ -363,16 +366,26 @@ comentariosToString([H|T],ComentariosTotales,ComentariosSTR):-
     comentariosToString(T,ComentariosTotales,S2),
     string_concat(S1,S2,ComentariosSTR).
 
-%una sola pregunta a string
-preguntaToString([ID,Autor,Formato,Fecha,Cuerpo,Destinatarios,ListComent,Likes],ComentariosTotales,String):-
-    %transformo en strin lo que corresponda
+%una sola publicacion a string
+preguntaToString(ID,ComentariosTotales,Publicaciones,String):-
+    %obtengo la publicacion con la ID  reutilizando la funcion de buscarcomentario
+    buscarComentario(ID,Publicaciones,Publi),
+    getAutorPubli(Publi,Autor),
+    getTextoPubli(Publi,Texto),
+    getFechaPubli(Publi,Fecha),
+    getCuerpoPubli(Publi,Cuerpo),
+    getDestiPubli(Publi,Desti),
+    getComentPubli(Publi,ListComent),
+    getLikesPubli(Publi,Likes),
     atom_string(ID,IDSTR),
     atom_string(Likes,LikesSTR),
-    amigosToString(Destinatarios,EtiquetadosSTR),
+    amigosToString(Desti,EtiquetadosSTR),
     comentariosToString(ListComent,ComentariosTotales,ComentariosSTR),
-    %con todo eso listo, creare el string
+    %con todo eso listo, creare el string de la publicacion
     string_concat("Autor: ",Autor,S0),
-    string_concat(S0,"\n",SA),
+    string_concat(S0,"  Fecha:",S00),
+    string_concat(S00,Fecha,S000),
+    string_concat(S000,"\n",SA),
     string_concat(SA,"Publicacion ID: ",SB),
     string_concat(SB,IDSTR,S1),
     string_concat(S1,"      Likes: ",S2),
@@ -380,18 +393,18 @@ preguntaToString([ID,Autor,Formato,Fecha,Cuerpo,Destinatarios,ListComent,Likes],
     string_concat(S3,"\n",S4),
     string_concat(S4,Cuerpo,S5),
     string_concat(S5,"\n",S6),
-    string_concat(S6,"Etiquetados: ",S7),
+    string_concat(S6,"Etiquetados:\n",S7),
     string_concat(S7,EtiquetadosSTR,S8),
     string_concat(S8,"\n",S9),
     string_concat(S9,ComentariosSTR,String).
 
 
 %lista de preguntas a string con sus comentarios correspondientes.
-preguntasYrespuestasToString([],_,"").
+preguntasYrespuestasToString([],_,_,"").
 
-preguntasYrespuestasToString([H|T],ListComent,StringSalida):-
-    preguntaToString(H,ListComent,S1),
-    preguntasYrespuestasToString(T,ListComent,S2),
+preguntasYrespuestasToString([H|T],ListComent,Publicaciones,StringSalida):-
+    preguntaToString(H,ListComent,Publicaciones,S1),
+    preguntasYrespuestasToString(T,ListComent,Publicaciones,S2),
     string_concat(S1,S2,StringSalida).
 
 %una publicaicon compartida a string
@@ -449,18 +462,22 @@ socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
     string_concat(S2,"\nAmigos\n",S3),
     %agrego los amigos listados 
     amigosToString(Amigos,AmigosStr),
-    string_concat(S3,AmigosStr,S4),
+    string_concat(S3,AmigosStr,S4),     
     %ahora agregare las publicaciones y sus comentarios 
     string_concat(S4,"Publicaciones\n",S5),
-    preguntasYrespuestasToString(ListaPubliU,ListComent,S6),
+    preguntasYrespuestasToString(ListaPubliU,ListComent,ListaPreguntas,S6),
     string_concat(S5,S6,S7),
     %ahora agregare las publicaciones compartidas (pero sin sus comentarios)
-    string_concat(S7,"Publicaciones Compartidas\n",Sa),
+    string_concat(S7,"Publicaciones Compartidas \n",Sa),
     compartidasToString(Compartidas,ListaPreguntas,S8),
-    string_concat(Sa,S8,StrOut).
+    string_concat(Sa,S8,StrOut),!.
 
 
 
 %to string con user offline
 socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
-    string_concat("caso1", "\n", StrOut).
+    string_concat("caso1", "\n", StrOut),!.
+
+/*
+socialNetwork(facebook,"1/1/2020",FACE),socialNetworkRegister(FACE,"2/2/2021","toro","123",FACE2),socialNetworkLogin(FACE2,"toro","123",F3),socialNetworkPost(F3,"3/3/2021","pregunta uno ayuda",["pana1","pana2"],F4),socialNetworkRegister(F4,"4/4/2021","jaime","123",F5),socialNetworkLogin(F5,"toro","123",F6),socialnetworkToString(F6,STRING).
+*/
