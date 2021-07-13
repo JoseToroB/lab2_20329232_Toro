@@ -444,6 +444,50 @@ compartidasToString([H|T],ListaPreguntas,String):-
     compartidasToString(T,ListaPreguntas,S2),
     string_concat(S1,S2,String).
 
+%esta funcion transforma una publicacion a string
+%NO MUESTRO LOS ETIQUETADOS POR "PRIVACIDAD"
+publicacionAstring([ID,Autor,Formato,Fecha,Cuerpo,Destinatarios,ListComent,Likes],ListaComent,String):-
+    atom_string(ID,IDSTR),
+    atom_string(Likes,LikesSTR),
+    comentariosToString(ListComent,ListaComent,ComentariosSTR),
+    %con todo eso listo, creare el string de la publicacion
+    string_concat("Autor: ",Autor,S0),
+    string_concat(S0,"  Fecha:",S00),
+    string_concat(S00,Fecha,S000),
+    string_concat(S000,"\n",SA),
+    string_concat(SA,"Publicacion ID: ",SB),
+    string_concat(SB,IDSTR,S1),
+    string_concat(S1,"      Likes: ",S2),
+    string_concat(S2,LikesSTR,S3),
+    string_concat(S3,"\n",S4),
+    string_concat(S4,Cuerpo,S5),
+    string_concat(S5,"\n",S6),
+    string_concat(S6,ComentariosSTR,String).
+
+%esta funcion transforma todas las publicaciones de la RS a string
+todasAstring([],_,"").
+todasAstring([H|T],ListaComent,STRING):-
+    publicacionAstring(H,ListaComent,S1),
+    todasAstring(T,ListaComent,S2),
+    string_concat(S1,S2,STRING).
+
+%to string con user offline
+socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
+    string_concat("La Red Social ",Name,S1),
+    string_concat(S1," creada el dia ",S2),
+    string_concat(S2,Date,S3),
+    atom_string(CantUser,Users),
+    string_concat(S3,"\nTiene un total de:",S4),
+    string_concat(S4,Users,S5),
+    string_concat(S5," usuarios registrados\n",S6),
+    atom_string(CantPubli,Publis),
+    string_concat(S6,"Con un total de: ",S7),
+    string_concat(S7,Publis,S8),
+    string_concat(S8," publicaciones\n",S9),
+    string_concat(S9,"PUBLICACION/ES EN ESTA RED SOCIAL\n",S10),
+    todasAstring(ListaPreguntas,ListComent,STRING),
+    string_concat(S10,STRING, StrOut),!.
+
 %to string con user online
 socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
     %como existe un user online, obtendre sus datos completos (fecha registro, amigos, publicaciones y las respuestas de estas publicaciones)
@@ -471,13 +515,6 @@ socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
     string_concat(S7,"Publicaciones Compartidas \n",Sa),
     compartidasToString(Compartidas,ListaPreguntas,S8),
     string_concat(Sa,S8,StrOut),!.
-
-
-
-%to string con user offline
-socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
-    string_concat("caso1", "\n", StrOut),!.
-
 /*
 socialNetwork(facebook,"1/1/2020",FACE),socialNetworkRegister(FACE,"2/2/2021","toro","123",FACE2),socialNetworkLogin(FACE2,"toro","123",F3),socialNetworkPost(F3,"3/3/2021","pregunta uno ayuda",["pana1","pana2"],F4),socialNetworkRegister(F4,"4/4/2021","jaime","123",F5),socialNetworkLogin(F5,"toro","123",F6),socialnetworkToString(F6,STRING).
 */
