@@ -9,7 +9,7 @@ sujeto a cambios
 */
 
 %Constructor de una RS
-socialNetwork(Name, Date, SOut):-SOut = [Name,Date,"",0,[],0,[],0,[]].
+socialNetwork(Name, Date, SOut):-SOut = [Name,Date,"",0,[],0,[],0,[]]. 
 %constructor de una RS vacio
 crearRS(Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent,SOut):-
     SOut = [Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent].
@@ -41,7 +41,8 @@ fecha(D,M,Y,Fecha):-
     D>0,(D<31;D=31), M>0 ,( M<12 ; M=12),!,
     string_concat(D,"/",F1),
     string_concat(M,"/",F2),
-    string_concat(Y,"",Fecha).
+    string_concat(F1,F2,F3),
+    string_concat(F3,Y,Fecha).
 
 /*
 TDA PUBLICACION
@@ -166,8 +167,7 @@ existeET([H|T],L):-existeUser(L,H),existeET(T,L).
 /*
 (0.5 pts) socialNetworkRegister: 
 Predicado que permite consultar el valor que toma un TDA SocialNetwork al ocurrir el registro de un nuevo usuario. 
-Para esto se ingresa un SocialNetwork inicial, nombre del usuario, contraseña y el SocialNetwork resultante luego del registro. 
-El retorno del predicado es true en caso que se pudo satisfacer el registro del usuario.
+DOM:socialNetwork X date X string X string X socialNetwork
 */
 socialNetworkRegister([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Fecha, Username, Password,Sn2 ):- 
     string(Username),not(Username=""),!,%los username solo pueden ser string(distintos a "") al igual que las contraseñas
@@ -185,8 +185,7 @@ socialNetworkRegister([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
 /*
 (0.5 pts) socialNetworkLogin: 
 Predicado que permite autenticar a un usuario registrado. 
-Si la autenticación es válida (i.e., que el usuario existe y su contraseña es correcta)e l retorno es true. 
-La actualización del stack incorpora al usuario autenticado en sesión activa (fundamental para que los predicados siguientes puedan funcionar).
+DOM:socialNetwork X string X string X socialNetwork
 */
 socialNetworkLogin([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent],Username, Password,Sn2 ):- 
     %compruebo nombre y pass sean strings
@@ -200,11 +199,7 @@ socialNetworkLogin([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser
 /*
 (0.5 pts) socialNetworkPost: 
 Predicado que permite a un usuario con sesión iniciada en la plataforma realizar una nueva publicación propia o dirigida a otros usuarios. 
-Cada publicación registra el autor de la misma (obtenido desde la sesión iniciada con login), 
-fecha de publicación (tipo Date), el tipo de publicación (“photo”, “video”, “url”, “text”, “audio”) 
-y el contenido de la publicación (solo debe ser un string). 
-El retorno es true si se puede satisfacer en “Sn2” el TDA SocialNetwork con la nueva publicación incluida 
-y sin la sesión activa del usuario que realizó la publicación.
+DOM:socialNetwork X date X string X string list x socialNetwork
 */
 socialNetworkPost([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Fecha, Texto, ListaUsernamesDest, Sn2):-
     %reviso que las entradas sean validas
@@ -240,9 +235,9 @@ socialNetworkPost([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,
 /*
 (0.5 pts) socialNetworkFollow: 
 Predicado que permite a un usuario con sesión iniciada en la plataforma seguir a otro usuario. 
-El retorno es true si se puede satisfacer en “Sn2” el TDA SocialNetwork con algún indicativo de que el usuario que tiene sesión iniciada en “Sn1”
-ahora sigue al usuario “U” y sin la sesión activa del usuario.
-no se puede seguir a si mismo
+DOM:
+socialNetwork X string X socialNetwork
+
 */
 socialNetworkFollow([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Seguir, Sn2):-
     %seguir es string, distinto a ""
@@ -279,8 +274,10 @@ socialNetworkFollow([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUse
 (0.5 pts) socialNetworkShare: 
 Predicado que permite a un usuario con sesión iniciada en la plataforma compartir 
 contenido de otro usuario en su propio espacio o dirigido a otros usuarios más. 
-El retorno es true si se puede satisfacer en “Sn2” 
-el TDA SocialNetwork con un registro de la publicación compartida y sin la sesión activa del usuario.
+DOM:
+socialNetwork X date X integer X string list X socialNetwork
+
+
 */
 %como no se niega que alguien pueda compartir varias veces la misma publicacion, dentro de mi codigo si esta permitido
 socialNetworkShare([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], Fecha, PostId, ListaUsernamesDest, Sn2):-
@@ -311,13 +308,9 @@ socialNetworkShare([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser
     %creo la SN con el user offline y los datos actualizados
     crearRS(Name,Date,"",CantPubli,ListaPreguntas,CantUser,UsuariosFinales,CantComent,ListComent,Sn2).
 
-/*
-(0.5 pts) socialNetworkToString: 
-Predicado que permite obtener una representación de un TDA socialNetwork como un string posible de visualizar de forma comprensible al usuario. 
-Debe hacer uso del char ‘\n’ para los saltos de línea. No utilice los predicados write y display dentro de este requerimiento,
-ya que debe quedar en el último argumento un string el cual pueda luego ser pasado como argumento a los predicados “write” o “display” 
-para poder visualizarlo de forma comprensible al usuario.
-*/
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FUNCIONES QUE UTILIZA EL TOSTRING%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %lista de amigos a string
 amigosToString([],"").
 
@@ -470,7 +463,12 @@ todasAstring([H|T],ListaComent,STRING):-
     publicacionAstring(H,ListaComent,S1),
     todasAstring(T,ListaComent,S2),
     string_concat(S1,S2,STRING).
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/*
+(0.5 pts) socialNetworkToString: 
+Predicado que permite obtener una representación de un TDA socialNetwork como un string posible de visualizar de forma comprensible al usuario. 
+DOM:socialNetwork X string
+*/
 %to string con user offline
 socialnetworkToString([Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent], StrOut):-
     string_concat("La Red Social ",Name,S1),
@@ -518,3 +516,25 @@ socialnetworkToString([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaU
 /*
 socialNetwork(facebook,"1/1/2020",FACE),socialNetworkRegister(FACE,"2/2/2021","toro","123",FACE2),socialNetworkLogin(FACE2,"toro","123",F3),socialNetworkPost(F3,"3/3/2021","pregunta uno ayuda",["pana1","pana2"],F4),socialNetworkRegister(F4,"4/4/2021","jaime","123",F5),socialNetworkLogin(F5,"toro","123",F6),socialnetworkToString(F6,STRING).
 */
+/*
+(1 pts) comment: 
+Predicado que permite a un usuario con sesión iniciada en la plataforma comentar publicaciones y otros comentarios existentes
+DOM:socialNetwork X date X integer X integer X string X socialNetwork
+*/
+comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent],Fecha,PostId,CommentId,TextoComentario,Sn2):-
+    not(UserOn=""),!,%existe user online
+    %existe comentario
+    not(CommentId<0),!,%si la id del comentario es 0 significa que es un comentario a la publicacion
+    not(CommentId>CantComent),!,%la id del comentario no puede ser mayor que la cantidad de comentarios
+    %existe publicacion
+    not(PostId<0),!,%NO EXISTEN POST MENORES A 0
+    not(PostId=0),!,%no existe post 0
+    not(PostId>CantPubli),!,%la id del post no puede ser mayor a la cantidad de posts
+    %reviso que sean strings 
+    string(Fecha),string(TextoComentario),
+    %ahora creare el comentario
+    ID is CantComent + 1,
+    crearRespuesta(ID,UserOn,Fecha,TextoComentario,[],PostId,0,Comentario).
+
+    %debo crear el comentario, agregar el nuevo comentario al comentario/publicacion que responde
+    %almacenar el comentario con la id de la publicacion
