@@ -164,6 +164,8 @@ buscarComentario(ID,[H|T],COM):-
 %esto revisa si cada elemento de una lista esta dentro de otra lista (lo utilizo para los etiquetados asique mi caso base en )
 existeET([],L).
 existeET([H|T],L):-existeUser(L,H),existeET(T,L).
+
+
 %%%%%%%%%%%
 %FUNCIONES%
 %%%%%%%%%%%
@@ -590,6 +592,7 @@ comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent
     not(PostId<0),!,%NO EXISTEN POST MENORES A 0
     not(PostId=0),!,%no existe post 0
     not(PostId>CantPubli),!,%la id del post no puede ser mayor a la cantidad de posts
+    
     %reviso que sean strings 
     string(Fecha),string(TextoComentario),
     %ahora creare el comentario
@@ -616,28 +619,24 @@ comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent
     remover(UsuarioOn,ListaUser,ListaUserActualizada),
     %agrego el user actualizado
     agregarAlFinal(ListaUserActualizada,UserActualizado,UsuariosFinales),
-
-    %ahora debo obtener la publicacion
-    buscarComentario(PostId,ListaPreguntas,Publicacion),
-    %obtengo la lista de comentarios  de la publicacion para buscar el comentario
-    getComentPubli(Publicacionnt,PUBLListComent),
-
-    estaEN(CommentId,PUBLListComent),!,%si no esta dentro de los comentarios entones entregara false y no buscara mas
-    
-    %ahora si el comentario esta en la lista de comentarios de tal publicacion, buscare el comentario 
+    %como todos los comentarios creados almacenan la id de la publicacion a la que pertenecen 
+    %obtendre el comentario con id=COMMENTID y revisare su  id de post
     buscarComentario(CommentId,ListComent,ComentarioBuscado),
-    
-    %ahora obtendre todo lo del comentario al que se le comenta para agregar el nuevo comentario a su lista
+    getIDPUBLIResp(ComentarioBuscado,IDPUBLICOMENTARIO),
+    PostId=IDPUBLICOMENTARIO,!,%si estas dos id son iguales entonces el comentario pertenece a la publicacion 
+    %ahora obtengo todo lo que falta del comentario
+
     getAUTORResp(ComentarioBuscado,AutorB),
     getFECHAResp(ComentarioBuscado,FechaB),
     getCUERPOTXTResp(ComentarioBuscado,CuerpoTextoB),
     getLISTCOMENTResp(ComentarioBuscado,ListComentB),
     getLIKESResp(ComentarioBuscado,LikesB),
-
+    
     %agrego la id nueva
     append(ListComentB,[ID],ComentariosComentario),
     %creare el comentario con su lista de comentarios actualizadas
     crearRespuesta(CommentId,AutorB,FechaB,CuerpoTextoB,ComentariosComentario,PostId,LikesB,Comentario1),
+    
     %remuevo el comentario viejo y agrego el actualizado (comentario1)
     remover(ComentarioBuscado,ListComent,ListComent2),
     %agrego los dos nuevos comentarios
