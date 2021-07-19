@@ -526,7 +526,6 @@ DOM:socialNetwork X date X integer X integer X string X socialNetwork
 */
 %comment a publicacion 
 comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent],Fecha,PostId,0,TextoComentario,Sn2):-
-    %obtengo la publicacion con la ID  reutilizando la funcion de buscarcomentario
     not(UserOn=""),!,%existe user online
     % el comentario es a una publicacion ya que la id del comment es 0
     %existe publicacion
@@ -573,7 +572,6 @@ comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent
     remover(Publicacion,ListaPreguntas,Publi1),
     %agrego la id del comentario a su lista 
     agregarAlFinal(PUBLListComent,ID,ComentariosPubli),
-    display(PUBLListComent),
     %creo la publicacion nueva
     crearPregunta(PostId,PUBLAutor,PUBLFecha,PUBLCuerpo,PUBLDesti,ComentariosPubli,PUBLLikes,PublicacionActualizada),
     %agrego la nueva
@@ -583,7 +581,6 @@ comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent
 
 %comment a comentario
 comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent],Fecha,PostId,CommentId,TextoComentario,Sn2):-
-    write("\n COMMENT CASO 2\n DEBO HACER LA RECURSION\n"),
     not(UserOn=""),!,%existe user online
     %existe comentario
     not(CommentId=0),!,%si la id del comentario es 0 significa que es un comentario a la publicacion
@@ -645,3 +642,72 @@ comment([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent
 
     %ahora que ya agrege el comentario y el anterior actualizados, creare la RS final
     crearRS(Name,Date,"",CantPubli,ListaPreguntas,CantUser,UsuariosFinales,ID,ListComentFinal,Sn2).
+/*
+(0.5 pts) socialNetworkLike:
+Predicado que permite a un usuario con sesión iniciada en la plataforma reaccionar a publicaciones o comentarios existentes 
+(propias o de terceros) a través de “me gusta”.
+DOM:socialNetwork X date X integer X integer X socialNetwork
+*/
+%like a post
+socialNetworkLike([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent],Fecha,PostId,0,Sn2):-
+    %hago las comprobaciones
+    not(UserOn=""),!,%existe user online
+    %existe publicacion
+    not(PostId<0),!,%NO EXISTEN POST MENORES A 0
+    not(PostId=0),!,%no existe post 0
+    not(PostId>CantPubli),!,%la id del post no puede ser mayor a la cantidad de posts
+    %reviso que sean strings 
+    string(Fecha),!,
+    %ahora debo obtener la publicacion
+    buscarComentario(PostId,ListaPreguntas,Publicacion),
+    %obtengo todo lo de la publicacion
+    getAutorPubli(Publicacion,PUBLAutor),
+    getTextoPubli(Publicacion,PUBLTexto),
+    getFechaPubli(Publicacion,PUBLFecha),
+    getCuerpoPubli(Publicacion,PUBLCuerpo),
+    getDestiPubli(Publicacion,PUBLDesti),
+    getComentPubli(Publicacion,PUBLListComent),
+    getLikesPubli(Publicacion,PUBLLikes),
+    %elimino la pubicacion vieja
+    remover(Publicacion,ListaPreguntas,Publi1),
+    %agrego la publicacion actualizada
+    Nlikes is PUBLLikes + 1,
+    crearPregunta(PostId,PUBLAutor,PUBLFecha,PUBLCuerpo,PUBLDesti,PUBLListComent,Nlikes,Npubli),
+    %agrego la nueva
+    agregarAlFinal(Publi1,Npubli,PublisFinal),
+    %ahora que ya agrege el comentario y el anterior actualizados, creare la RS final
+    Sn2=[Name,Date,"",CantPubli,PublisFinal,CantUser,ListaUser,CantComent,ListComent].
+
+%like a coment
+socialNetworkLike([Name,Date,UserOn,CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent],Fecha,PostId,CommentId,Sn2):-
+    not(UserOn=""),!,%existe user online
+    %existe comentario
+    not(CommentId=0),!,%si la id del comentario es 0 significa que es un comentario a la publicacion
+    not(CommentId>CantComent),!,%la id del comentario no puede ser mayor que la cantidad de comentarios
+    %existe publicacion
+    not(PostId<0),!,%NO EXISTEN POST MENORES A 0
+    not(PostId=0),!,%no existe post 0
+    not(PostId>CantPubli),!,%la id del post no puede ser mayor a la cantidad de posts
+    %fecha sea string
+    string(Fecha),!,
+    %como todos los comentarios creados almacenan la id de la publicacion a la que pertenecen 
+    %obtendre el comentario con id=COMMENTID y revisare su  id de post
+    buscarComentario(CommentId,ListComent,ComentarioBuscado),
+    getIDPUBLIResp(ComentarioBuscado,IDPUBLICOMENTARIO),
+    PostId=IDPUBLICOMENTARIO,!,%si estas dos id son iguales entonces el comentario pertenece a la publicacion 
+    %ahora obtengo todo lo que falta del comentario
+    getAUTORResp(ComentarioBuscado,AutorB),
+    getFECHAResp(ComentarioBuscado,FechaB),
+    getCUERPOTXTResp(ComentarioBuscado,CuerpoTextoB),
+    getLISTCOMENTResp(ComentarioBuscado,ListComentB),
+    getLIKESResp(ComentarioBuscado,LikesB),
+    Nlikes is LikesB +1,
+    %creare el comentario con su lista de comentarios actualizadas
+    crearRespuesta(CommentId,AutorB,FechaB,CuerpoTextoB,ListComentB,PostId,Nlikes,ComentarioNuevo),
+    %remuevo el comentario viejo y agrego el actualizado (comentario1)
+    remover(ComentarioBuscado,ListComent,ListComent2),
+    %agrego los dos nuevos comentarios
+    append(ListComent2,[ComentarioNuevo],ListComent3),
+    %ahora que ya agrege el comentario y el anterior actualizados, creare la RS final
+    crearRS(Name,Date,"",CantPubli,ListaPreguntas,CantUser,ListaUser,CantComent,ListComent3,Sn2).
+    
